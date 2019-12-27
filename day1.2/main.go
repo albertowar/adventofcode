@@ -9,6 +9,22 @@ import (
 	"strconv"
 )
 
+func calculateRequiredFuel(mass float64) float64 {
+	if mass <= 0.0 {
+		return 0.0
+	}
+
+	requiredFuel := math.Trunc(mass/3) - 2
+
+	if requiredFuel <= 0.0 {
+		return 0.0
+	}
+
+	requiredFuelForFuel := calculateRequiredFuel(requiredFuel)
+
+	return requiredFuel + requiredFuelForFuel
+}
+
 func main() {
 	file, err := os.Open("input.txt")
 	if err != nil {
@@ -27,8 +43,7 @@ func main() {
 			break
 		}
 
-		requiredFuel := math.Trunc(containerMass/3) - 2
-		totalFuel += requiredFuel
+		totalFuel += calculateRequiredFuel(containerMass)
 	}
 
 	if err := scanner.Err(); err != nil {
