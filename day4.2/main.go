@@ -17,7 +17,7 @@ func extractDigits(number int) []int {
 	return digits
 }
 
-func hasTwoAdjacentDigits(digits []int) bool {
+func HasTwoAdjacentDigits(digits []int) bool {
 	hasTwoAdjacentDigits := false
 
 	for i := 0; i < len(digits)-1; i++ {
@@ -27,7 +27,7 @@ func hasTwoAdjacentDigits(digits []int) bool {
 	return hasTwoAdjacentDigits
 }
 
-func hasValidClusters(digits []int) bool {
+func HasValidClusters(digits []int) bool {
 	hasValidClusters := false
 
 	frequency := make(map[int]int)
@@ -58,7 +58,7 @@ func hasValidClusters(digits []int) bool {
 	return hasValidClusters
 }
 
-func digitsNeverDecrease(digits []int) bool {
+func DigitsNeverDecrease(digits []int) bool {
 	digitsNeverDecrease := true
 
 	for i := 0; i < len(digits)-1; i++ {
@@ -74,7 +74,7 @@ func main() {
 	for i := 236491; i <= 713787; i++ {
 		digits := extractDigits(i)
 
-		if hasTwoAdjacentDigits(digits) && digitsNeverDecrease(digits) && hasValidClusters(digits) {
+		if HasTwoAdjacentDigits(digits) && DigitsNeverDecrease(digits) && HasValidClusters(digits) {
 			potentialPasswords++
 		}
 	}
