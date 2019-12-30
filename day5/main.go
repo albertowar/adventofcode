@@ -123,16 +123,14 @@ func runIntcodeProgram(intcodes []int) {
 	rawOpcode := intcodes[i]
 	opcodeDigits := extractOpcodeDigits(rawOpcode)
 	opcode := parseOpcode(opcodeDigits)
+	fmt.Println(opcodeDigits)
 
 	for opcode != 99 {
 		//time.Sleep(1 * time.Second)
-		fmt.Println(opcodeDigits)
-		if opcode == 1 {
-			mode1 := parseArgMode(opcodeDigits, 1)
-			mode2 := parseArgMode(opcodeDigits, 2)
-
-			arg1 := extractArgument(intcodes, i, 1, mode1)
-			arg2 := extractArgument(intcodes, i, 2, mode2)
+		switch opcode {
+		case 1:
+			arg1 := extractArgument(intcodes, i, 1, parseArgMode(opcodeDigits, 1))
+			arg2 := extractArgument(intcodes, i, 2, parseArgMode(opcodeDigits, 2))
 
 			// arg3 is always in position mode
 			arg3 := intcodes[i+3]
@@ -140,12 +138,9 @@ func runIntcodeProgram(intcodes []int) {
 
 			intcodes[arg3] = arg1 + arg2
 			i += 4
-		} else if opcode == 2 {
-			mode1 := parseArgMode(opcodeDigits, 1)
-			mode2 := parseArgMode(opcodeDigits, 2)
-
-			arg1 := extractArgument(intcodes, i, 1, mode1)
-			arg2 := extractArgument(intcodes, i, 2, mode2)
+		case 2:
+			arg1 := extractArgument(intcodes, i, 1, parseArgMode(opcodeDigits, 1))
+			arg2 := extractArgument(intcodes, i, 2, parseArgMode(opcodeDigits, 2))
 
 			// arg3 is always in position mode
 			arg3 := intcodes[i+3]
@@ -153,7 +148,7 @@ func runIntcodeProgram(intcodes []int) {
 
 			intcodes[arg3] = arg1 * arg2
 			i += 4
-		} else if opcode == 3 {
+		case 3:
 			// Instruction 3 argument is always in position mode
 			arg1 := extractArgument(intcodes, i, 1, 1)
 
@@ -162,18 +157,63 @@ func runIntcodeProgram(intcodes []int) {
 
 			intcodes[arg1] = value
 			i += 2
-		} else if opcode == 4 {
-			mode1 := parseArgMode(opcodeDigits, 1)
+		case 4:
+			arg1 := extractArgument(intcodes, i, 1, parseArgMode(opcodeDigits, 1))
 
-			arg1 := extractArgument(intcodes, i, 1, mode1)
-
-			fmt.Println(arg1)
+			fmt.Println("Program output:", arg1)
 			i += 2
+		case 5:
+			arg1 := extractArgument(intcodes, i, 1, parseArgMode(opcodeDigits, 1))
+
+			if arg1 != 0 {
+				arg2 := extractArgument(intcodes, i, 2, parseArgMode(opcodeDigits, 2))
+				i = arg2
+			} else {
+				i += 3
+			}
+
+			fmt.Printf("Jump to position %d because condition was %d\n", i, arg1)
+		case 6:
+			arg1 := extractArgument(intcodes, i, 1, parseArgMode(opcodeDigits, 1))
+
+			if arg1 == 0 {
+				arg2 := extractArgument(intcodes, i, 2, parseArgMode(opcodeDigits, 2))
+				i = arg2
+			} else {
+				i += 3
+			}
+
+			fmt.Printf("Jump to position %d because condition was %d\n", i, arg1)
+		case 7:
+			arg1 := extractArgument(intcodes, i, 1, parseArgMode(opcodeDigits, 1))
+			arg2 := extractArgument(intcodes, i, 2, parseArgMode(opcodeDigits, 2))
+			arg3 := extractArgument(intcodes, i, 3, 1)
+
+			if arg1 < arg2 {
+				intcodes[arg3] = 1
+			} else {
+				intcodes[arg3] = 0
+			}
+
+			i += 4
+		case 8:
+			arg1 := extractArgument(intcodes, i, 1, parseArgMode(opcodeDigits, 1))
+			arg2 := extractArgument(intcodes, i, 2, parseArgMode(opcodeDigits, 2))
+			arg3 := extractArgument(intcodes, i, 3, 1)
+
+			if arg1 == arg2 {
+				intcodes[arg3] = 1
+			} else {
+				intcodes[arg3] = 0
+			}
+
+			i += 4
 		}
 
 		rawOpcode = intcodes[i]
 		opcodeDigits = extractOpcodeDigits(rawOpcode)
 		opcode = parseOpcode(opcodeDigits)
+		fmt.Println(opcodeDigits)
 	}
 }
 
