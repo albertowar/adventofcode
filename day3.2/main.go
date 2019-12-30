@@ -8,11 +8,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-
-	"gonum.org/v1/plot"
-	"gonum.org/v1/plot/plotter"
-	"gonum.org/v1/plot/plotutil"
-	"gonum.org/v1/plot/vg"
 )
 
 // Point something
@@ -25,6 +20,16 @@ type Point struct {
 type Segment struct {
 	Src Point
 	Dst Point
+}
+
+func (p Point) isInSegment(s Segment) bool {
+	ap := Point{X: p.X - s.Src.X, Y: p.Y - s.Src.Y}
+	ab := Point{X: s.Dst.X - s.Src.X, Y: s.Dst.Y - s.Src.Y}
+
+	kap := ab.X*ap.X + ab.Y*ap.Y
+	kab := ab.X*ab.X + ab.Y*ab.Y
+
+	return kap == 0 || kap == kab || (0 < kap && kap < kab)
 }
 
 func extractSegments(directions []string) []Segment {
@@ -95,22 +100,22 @@ func uvalue(p1 Point, p2 Point, p3 Point, p4 Point) float64 {
 	return -numerator / denominator
 }
 
-func toPlotPoints(segments []Segment) plotter.XYs {
-	pts := make(plotter.XYs, len(segments)+1)
+func findStepsToIntersection(segments []Segment, intersection Point) int {
+	steps := 0
 
-	pts[0].X = segments[0].Src.X
-	pts[0].Y = segments[0].Src.Y
+	for _, s := range segments {
+		steps += int(math.Abs(s.Dst.X-s.Src.X) + math.Abs(s.Dst.Y-s.Src.Y))
 
-	for i := range segments {
-		pts[i+1].X = segments[i].Dst.X
-		pts[i+1].Y = segments[i].Dst.Y
+		if intersection.isInSegment(s) {
+			break
+		}
 	}
 
-	return pts
+	return steps
 }
 
 func main() {
-	file, err := os.Open("input.txt")
+	file, err := os.Open("test.txt")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -124,15 +129,6 @@ func main() {
 
 	wire2, err := getDirections(scanner)
 	wire2Segments := extractSegments(wire2)
-
-	p, err := plot.New()
-	p.Title.Text = "Day 3"
-	p.X.Label.Text = "X"
-	p.Y.Label.Text = "Y"
-
-	plotutil.AddLinePoints(p, "Wire1", toPlotPoints(wire1Segments), "Wire2", toPlotPoints(wire2Segments))
-
-	p.Save(10*vg.Inch, 10*vg.Inch, "points.png")
 
 	intersections := make([]Point, 0)
 
@@ -156,6 +152,8 @@ func main() {
 
 	minDistance := math.MaxFloat64
 
+	stepsToIntersection := make(map[Point]int)
+
 	for _, intersection := range intersections {
 		// Skip the central port since both wires start there
 		if intersection.X == 0 && intersection.Y == 0 {
@@ -168,8 +166,22 @@ func main() {
 		if distance < minDistance {
 			minDistance = distance
 		}
+
+		wire1Steps := findStepsToIntersection(wire1Segments, intersection)
+		wire2Steps := findStepsToIntersection(wire2Segments, intersection)
+		stepsToIntersection[intersection] = wire1Steps + wire2Steps
 	}
 
 	fmt.Printf("Found %d intersections\n", len(intersections))
 	fmt.Printf("Min distance %f\n", minDistance)
+
+	minSteps := math.MaxInt32
+
+	for _, steps := range stepsToIntersection {
+		if steps < minSteps {
+			minSteps = steps
+		}
+	}
+
+	fmt.Printf("Min steps %d\n", minSteps)
 }
