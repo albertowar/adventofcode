@@ -32,32 +32,25 @@ func parseOrbitalRelationships(filename string, celestialObjects map[string]*cel
 			return fmt.Errorf("Too many objects in the orbit. %s with length %d. Original %s", relationshipCelestialObjects, len(relationshipCelestialObjects), orbitalRelationship)
 		}
 
-		center := relationshipCelestialObjects[0]
-		satellite := relationshipCelestialObjects[1]
+		centerName := relationshipCelestialObjects[0]
+		satelliteName := relationshipCelestialObjects[1]
 
-		var centerObject, satelliteObject celestialObject
-		if centerObject, ok := celestialObjects[center]; ok {
-			if satelliteObject, ok := celestialObjects[satellite]; ok {
-				satelliteObject.center = centerObject
-			} else {
-				satelliteObject = &celestialObject{name: satellite, center: centerObject, satellites: make([]*celestialObject, 0)}
-				celestialObjects[satellite] = satelliteObject
-			}
-		} else {
-			centerObject := &celestialObject{name: center, satellites: make([]*celestialObject, 0)}
-
-			if satelliteObject, ok := celestialObjects[satellite]; ok {
-				centerObject.satellites = append(centerObject.satellites, satelliteObject)
-				satelliteObject.center = centerObject
-			} else {
-				satelliteObject = &celestialObject{name: satellite, center: centerObject, satellites: make([]*celestialObject, 0)}
-				celestialObjects[satellite] = satelliteObject
-			}
-
-			celestialObjects[center] = centerObject
+		centerObject, found := celestialObjects[centerName]
+		if !found {
+			centerObject = &celestialObject{name: centerName, satellites: make([]*celestialObject, 0)}
+			celestialObjects[centerName] = centerObject
 		}
 
-		centerObject.satellites = append(centerObject.satellites, &satelliteObject)
+		satelliteObject, found := celestialObjects[satelliteName]
+		if found {
+			centerObject.satellites = append(centerObject.satellites, satelliteObject)
+			satelliteObject.center = centerObject
+		} else {
+			satelliteObject = &celestialObject{name: satelliteName, center: centerObject, satellites: make([]*celestialObject, 0)}
+			celestialObjects[satelliteName] = satelliteObject
+		}
+
+		centerObject.satellites = append(centerObject.satellites, satelliteObject)
 	}
 
 	if err := scanner.Err(); err != nil {
@@ -67,10 +60,18 @@ func parseOrbitalRelationships(filename string, celestialObjects map[string]*cel
 	return nil
 }
 
+func orbits(current *celestialObject, center *celestialObject) int {
+	if center == nil {
+		return 0
+	}
+
+	return 1 + orbits(current, center.center)
+}
+
 func main() {
 	celestialObjects := make(map[string]*celestialObject)
 
-	err := parseOrbitalRelationships("test.txt", celestialObjects)
+	err := parseOrbitalRelationships("input.txt", celestialObjects)
 
 	if err != nil {
 		panic(err)
@@ -79,4 +80,12 @@ func main() {
 	for name, celestialObject := range celestialObjects {
 		fmt.Printf("Celestial Object %s with %d satellites\n", name, len(celestialObject.satellites))
 	}
+
+	totalOrbits := 0
+
+	for _, celestialObject := range celestialObjects {
+		totalOrbits += orbits(celestialObject, celestialObject.center)
+	}
+
+	fmt.Printf("Total orbits: %d\n", totalOrbits)
 }
