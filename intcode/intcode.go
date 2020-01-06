@@ -1,4 +1,4 @@
-package main
+package intcode
 
 import (
 	"bufio"
@@ -7,6 +7,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 func parseIntArray(input []string) ([]int, error) {
@@ -22,7 +23,7 @@ func parseIntArray(input []string) ([]int, error) {
 	return output, nil
 }
 
-func readIntCodes(filename string) ([]int, error) {
+func ReadIntCodes(filename string) ([]int, error) {
 	file, err := os.Open(filename)
 	if err != nil {
 		log.Fatal(err)
@@ -116,14 +117,17 @@ func parseArgMode(opcodeDigits []int, argNumber int) int {
 	return mode
 }
 
-func runIntcodeProgram(intcodes []int, input chan int, output chan int) {
+func RunIntcodeProgram(intcodes []int, input chan int, output chan int, wg *sync.WaitGroup) {
+	if wg != nil {
+		defer wg.Done()
+	}
+
 	i := 0
 	rawOpcode := intcodes[i]
 	opcodeDigits := extractOpcodeDigits(rawOpcode)
 	opcode := parseOpcode(opcodeDigits)
 
 	for opcode != 99 {
-		//time.Sleep(1 * time.Second)
 		switch opcode {
 		case 1:
 			arg1 := extractArgument(intcodes, i, 1, parseArgMode(opcodeDigits, 1))
@@ -214,57 +218,4 @@ func runIntcodeProgram(intcodes []int, input chan int, output chan int) {
 		opcodeDigits = extractOpcodeDigits(rawOpcode)
 		opcode = parseOpcode(opcodeDigits)
 	}
-}
-
-func runProgram(intcodes []int, inputChannel chan int, outputChannel chan int, phase int, input int) int {
-	go runIntcodeProgram(intcodes, inputChannel, outputChannel)
-	inputChannel <- phase
-	inputChannel <- input
-
-	output := <-outputChannel
-
-	return output
-}
-
-func allDifferent(a int, b int, c int, d int, e int) bool {
-	return a != b && a != c && a != d && a != e && b != c && b != d && b != e && c != d && c != e && d != e
-}
-
-func main() {
-	minPhase := 0
-	maxPhase := 5
-
-	inputChannel := make(chan int)
-	outputChannel := make(chan int)
-
-	maxThrusterSignal := 0
-
-	for phaseA := minPhase; phaseA <= maxPhase; phaseA++ {
-		for phaseB := minPhase; phaseB <= maxPhase; phaseB++ {
-			for phaseC := minPhase; phaseC <= maxPhase; phaseC++ {
-				for phaseD := minPhase; phaseD <= maxPhase; phaseD++ {
-					for phaseE := minPhase; phaseE <= maxPhase; phaseE++ {
-						if allDifferent(phaseA, phaseB, phaseC, phaseD, phaseE) {
-							intcodes, err := readIntCodes("input.txt")
-							if err != nil {
-								log.Fatal(err)
-							}
-
-							outputA := runProgram(intcodes, inputChannel, outputChannel, phaseA, 0)
-							outputB := runProgram(intcodes, inputChannel, outputChannel, phaseB, outputA)
-							outputC := runProgram(intcodes, inputChannel, outputChannel, phaseC, outputB)
-							outputD := runProgram(intcodes, inputChannel, outputChannel, phaseD, outputC)
-							outputE := runProgram(intcodes, inputChannel, outputChannel, phaseE, outputD)
-
-							if outputE > maxThrusterSignal {
-								maxThrusterSignal = outputE
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-
-	fmt.Printf("Max Thruster Signal: %d\n", maxThrusterSignal)
 }
