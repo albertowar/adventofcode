@@ -10,8 +10,8 @@ import (
 	"sync"
 )
 
-func parseIntArray(input []string) ([]int, error) {
-	output := make([]int, 0, len(input))
+func parseIntArray(input []string) ([]int64, error) {
+	output := make([]int64, 0, 10*len(input))
 
 	for _, element := range input {
 		i, err := strconv.Atoi(element)
@@ -23,7 +23,7 @@ func parseIntArray(input []string) ([]int, error) {
 	return output, nil
 }
 
-func ReadIntCodes(filename string) ([]int, error) {
+func ReadIntCodes(filename string) ([]int64, error) {
 	file, err := os.Open(filename)
 	if err != nil {
 		log.Fatal(err)
@@ -46,7 +46,7 @@ func ReadIntCodes(filename string) ([]int, error) {
 	return parseIntArray(tokens)
 }
 
-func readInput() (int, error) {
+func readInput() (int64, error) {
 	reader := bufio.NewReader(os.Stdin)
 	text, _ := reader.ReadString('\n')
 	text = strings.Replace(text, "\n", "", -1)
@@ -54,35 +54,40 @@ func readInput() (int, error) {
 	return value, err
 }
 
-func extractOpcodeDigits(rawOpcode int) []int {
-	digits := make([]int, 0)
+func extractOpcodeDigits(rawOpcode int64) []int64 {
+	digits := make([]int64, 0)
 
 	for rawOpcode > 0 {
 		digit := rawOpcode % 10
 		rawOpcode = rawOpcode / 10
 
-		digits = append([]int{digit}, digits...)
+		digits = append([]int64{digit}, digits...)
 	}
 
 	return digits
 }
 
-func extractArgument(intcodes []int, start int, argNumber int, mode int) int {
-	var arg int
+var relativeBase int = 0
 
-	if mode == 0 {
+func extractArgument(intcodes []int64, start int64, argNumber int64, mode int64) int64 {
+	var arg int64
+
+	switch mode {
+	case 0:
 		arg = intcodes[intcodes[start+argNumber]]
-	} else {
+	case 1:
 		arg = intcodes[start+argNumber]
+	case 2:
+		arg = intcodes[relativeBase+intcodes[start+argNumber]]
 	}
 
 	return arg
 }
 
-func parseOpcode(opcodeDigits []int) int {
+func parseOpcode(opcodeDigits []int64) int64 {
 	last := len(opcodeDigits) - 1
 
-	var opcode int
+	var opcode int64
 	if len(opcodeDigits) == 1 {
 		opcode = opcodeDigits[last]
 	} else {
@@ -92,8 +97,8 @@ func parseOpcode(opcodeDigits []int) int {
 	return opcode
 }
 
-func parseArgMode(opcodeDigits []int, argNumber int) int {
-	var mode int
+func parseArgMode(opcodeDigits []int64, argNumber int64) int64 {
+	var mode int64
 
 	last := len(opcodeDigits) - 1
 
@@ -117,7 +122,7 @@ func parseArgMode(opcodeDigits []int, argNumber int) int {
 	return mode
 }
 
-func RunIntcodeProgram(intcodes []int, input chan int, output chan int, wg *sync.WaitGroup) {
+func RunIntcodeProgram(intcodes []int64, input chan int64, output chan int64, wg *sync.WaitGroup) {
 	if wg != nil {
 		defer wg.Done()
 	}
@@ -151,7 +156,7 @@ func RunIntcodeProgram(intcodes []int, input chan int, output chan int, wg *sync
 			// Instruction 3 argument is always in position mode
 			arg1 := extractArgument(intcodes, i, 1, 1)
 
-			var value int
+			var value int64
 			if input != nil {
 				value = <-input
 			} else {
@@ -212,10 +217,12 @@ func RunIntcodeProgram(intcodes []int, input chan int, output chan int, wg *sync
 			}
 
 			i += 4
-		}
+		case 9:
+			arg1 := extractArgument(intcodes, i, 1, parseArgMode(opcodeDigits, 1))
 
-		rawOpcode = intcodes[i]
-		opcodeDigits = extractOpcodeDigits(rawOpcode)
-		opcode = parseOpcode(opcodeDigits)
+			relativeBase += arg1
+
+			i += 2
+		}
 	}
 }
